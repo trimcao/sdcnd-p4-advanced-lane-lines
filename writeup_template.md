@@ -19,25 +19,18 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
+[test_image]: ./test_images/test3.jpg "Test Image"
 [chess_undist]: ./output_images/undistort.png "Chess Undistorted"
-[undist]: ./output_images/test_undistort.jpg "Road Undistorted"
-[thresholded]: ./output_images/binary.jpg "Binary Example"
-[warped]: ./output_images/warped.jpg "Warp Example"
-[fit_line]: ./output_images/fit_line.jpg "Fit Visual"
-[output]: ./output_images/test_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
+[undist]: ./output_images/test_undistort.png "Road Undistorted"
+[thresholded]: ./output_images/binary.png "Binary Example"
+[warped]: ./output_images/warped.png "Warp Example"
+[binary_warped]: ./output_images/binary_warped.png "Binary Warp"
+[fit_line]: ./output_images/fit_line.png "Fit Visual"
+[output]: ./output_images/test_output.png "Output"
+[video1]: ./output_images/project4_output.mp4 "Video"
 
-## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
-
-### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.
 
 ---
-
-### Writeup / README
-
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.
-
-You're reading it!
 
 ### Camera Calibration
 
@@ -49,66 +42,125 @@ I start by preparing "object points", which will be the (x, y, z) coordinates of
 
 I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result:
 
-![alt text][image1]
+![alt text][chess_undist]
 
 ### Pipeline (single images)
 
+The example I will use throughout the pipeline is:
+![alt text][test_image]
+
 #### 1. Provide an example of a distortion-corrected image.
 
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
-![alt text][image2]
+The camera undistort function is defined as `cal_undistort()` in the notebook (part 1).
+It uses `cv2.undistort()` function.
+
+Below is the image undistorted with the `cal_undistort` function:
+![alt text][undist]
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+Part 2 in the Jupyter notebook is about thresholding an image, `thresholding()`
+function.
+I use three filters in the function:
+- R-channel color filter to get the white lane line.
+- S-channel color to get the yellow lane line.
+- Sobel threshold in x-direction to get the line in parts affected by brightness (such as shadows).
 
-![alt text][image3]
+We can see that the lines are picked up pretty well in the example image:
+
+![alt text][thresholded]
+
+Although my `thresholding()` function works with the project video, I need to
+improve it for the more challenging videos. I will do that later when I have more
+time.
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+Part 3 in the notebook is Perspective Transform. In this part, I define a function
+`transform_pers()` that transform the perspective of the images recorded by the
+dash camera to bird-eye (top-down) view.
 
-```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
-```
-
-This resulted in the following source and destination points:
+The `transform_pers()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
 
 | Source        | Destination   |
 |:-------------:|:-------------:|
-| 585, 460      | 320, 0        |
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| 190, 720      | 200, 0        |
+| 1130, 720     | 200, 720      |
+| 690, 450      | 900, 720      |
+| 590, 450      | 900, 0        |
 
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+Using hardcode source and destination points is not the ideal approach. However,
+I guess it will work as long as the same camera is used. Each camera would need
+different source/destination points.
 
-![alt text][image4]
+Here is the output of the `transform_pers()` function given the example image as
+input.
+
+![alt text][warped]
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+First I obtain a thresholded binary image from the input image:
 
-![alt text][image5]
+![alt text][binary_warped]
+
+To obtain the lane-line pixels, I use the sliding window method introduced in the
+lecture. First, I find the starting point of each line by using histogram (number of points per column).
+In each half of the image, the position that has the most points will be the line's starting point.
+From the starting point, I find all the 'on' (white) pixels that fit the window.
+The window width is [start_point - margin, start_point + margin] for an arbitrary
+value of `margin` (default value = 100).
+
+After getting all the points in the first
+window, I calculate the middle point of these points, and set it as the starting point for the next window. We repeat the process until we reach the window in the top of
+the image. Note that the first window is at the bottom of the image (lane starting),
+and the last window is at the top (lane ending).
+
+This video visualizes the whole process of finding lane lines by using sliding
+window: https://www.youtube.com/watch?v=siAMDK8C_x8
+
+With the lane-line pixels found, I fit a second polynomial line for each left and
+right lane line using function `np.polyfit()`. The following image is the found
+lane lines from the example image.
+
+![alt text][fit_line]
+
+Since in a normal video we would normally have at least 24 frames per second, the
+lane lines in consecutive frames tend to be similar. With that in mind, we can
+use the lane lines found in the last frame to guide the search in the next frame.
+
+The `fast_search()` function in the notebook slides a window along the found lane lines in the last frame to find the lane-line pixels in the next frame.
+Note that it is not always possible to find the lane lines using `fast_search()`
+function. In such a case, I skip finding the lane lines in the current frame, and
+use the normal finding lane line function in the next frame.
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+Part 5 of the notebook is about finding the radius of curvature and position of the
+car in the lane.
+
+Suppose the lane line is represented by the equation:
+<!-- ![alt text](./fig/line_function.png "Logo Title Text 1") -->
+<img src="./fig/line_function.png" alt="Line Function" style="width: 250px;"/>
+
+Then the radius of curvature can be calculated as:
+<img src="./fig/radius_curve.png" alt="Radius of Curvature" style="width: 300px;"/>
+
+To get the radius of curvature in unit of meters (rather than in unit of pixels), I need to convert distance in pixels to distance in meters.
+
+Next, we want to know whether the vehicle is driving in the center of the lane. We can consider the center of the image as the position of the car since the camera is placed in the center of the car.
+We can also find the center of the lane by calculating the middle point between two found lane lines. Then we know how much offset from the center the car is at any given frame.
+
+Again, I need to convert distance in pixels to distance in meters so it becomes easier to estimate the distance in real-life space.
+
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+In part 6 of the notebook, I define the function `draw_lane()` that takes an undistorted image as the input and use the functions described in preceding parts to draw the lane onto the original image.
 
-![alt text][image6]
+The values of radius of curvature and offset from center are also plotted in the frame. Here is the lane drawn onto the example image.
+
+![alt text][output]
 
 ---
 
@@ -116,7 +168,16 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](./output_images/project4_output.mp4)
+
+Part 7 shows the whole pipeline I use to generate the lane for each frame of the video. Let's go through all the steps in the pipeline:
+
+- Undistort the input image.
+- Obtain a thresholded binary image from the undistorted image.
+- Transform the perspective of the binary image to bird-eye (top-down view).
+- Find lane lines in the top-down binary image.
+- Get the average line fit for left lane-line and right lane-line. (Note that the line fit for multiple frames are stored in a `Line` object).
+- Draw the lane onto the original image, plus the radius of curvature and offset values.
 
 ---
 
