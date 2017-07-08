@@ -36,11 +36,15 @@ The goals / steps of this project are the following:
 
 #### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).
+Part 1 of the Jupyter notebook contains the code to obtain the
+camera matrix and distortion coefficients from a set of chessboard
+images.
 
-I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.
+I used the method given in the lecture, and the following description of the method by Udacity is great:
 
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result:
+>I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.
+
+>I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result:
 
 ![alt text][chess_undist]
 
@@ -144,6 +148,7 @@ Suppose the lane line is represented by the equation:
 <img src="./fig/line_function.png" alt="Line Function" style="width: 250px;"/>
 
 Then the radius of curvature can be calculated as:
+
 <img src="./fig/radius_curve.png" alt="Radius of Curvature" style="width: 300px;"/>
 
 To get the radius of curvature in unit of meters (rather than in unit of pixels), I need to convert distance in pixels to distance in meters.
@@ -185,4 +190,22 @@ Part 7 shows the whole pipeline I use to generate the lane for each frame of the
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.
+My approach to the project is following the steps mentioned in the lecture provided
+by Udacity. I try to optimize each step in the pipeline. As far as I remember,
+two most challenging steps are: thresholding the image, and transforming the
+perspective.
+
+While using color and gradient thresholding to obtain a binary image, as many advise
+in the Slack channel, it helps to try different color channels. In transforming
+perspective, the key is choosing the optimal destination set of points.
+
+My current pipeline will probably fail in difficult situations, such as heavy
+shadows, the lane lines and the road colors are similar, the road curve changes
+suddenly, and possibly many more.
+
+I have not tried the challenge videos due to my limited time. In the future, I will
+work on improving the `thresholding()` function by looking at more color channels.
+Another task is to deal with sharp curves on the road. I need to spend more time
+on processing the line information across multiple frames.
+
+I will show my work on the challenge videos later. 
